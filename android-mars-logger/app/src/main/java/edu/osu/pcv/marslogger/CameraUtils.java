@@ -170,12 +170,8 @@ public class CameraUtils {
     }
 
     public static String getRearCameraId(CameraManager manager) {
-        String rearCameraId = "0";
         try {
             String[] cameraIdList = manager.getCameraIdList();
-            int cameraSize = cameraIdList.length;
-            CharSequence[] entries = new CharSequence[cameraSize];
-            CharSequence[] entriesValues = new CharSequence[cameraSize];
             // Loop through our camera list
             for (int i = 0; i < cameraIdList.length; i++) {
                 // Get the camera
@@ -185,28 +181,19 @@ public class CameraUtils {
                 try {
                     // Try to find what direction it is pointing
 
-                    // Check to see if the camera is facing the back, front, or external
+                    // Check if the camera is facing the back, front, or external
                     if (characteristics.get(CameraCharacteristics.LENS_FACING) ==
                             CameraMetadata.LENS_FACING_BACK) {
-                        entries[i] = cameraId + " - Lens Facing Back";
-                        rearCameraId = cameraId;
-                    } else if (characteristics.get(CameraCharacteristics.LENS_FACING) ==
-                            CameraMetadata.LENS_FACING_FRONT) {
-                        entries[i] = cameraId + " - Lens Facing Front";
-                    } else {
-                        entries[i] = cameraId + " - Lens External";
+                        return cameraId;
                     }
                 } catch (NullPointerException e) {
                     e.printStackTrace();
-                    entries[i] = cameraId + " - Lens Facing Unknown";
                 }
-                // Set the value to just the camera id
-                entriesValues[i] = cameraId;
             }
         } catch (CameraAccessException e) {
             e.printStackTrace();
         }
-        return rearCameraId;
+        return "0";
     }
 
     public static int calcBitRate(int width, int height, int frame_rate) {
