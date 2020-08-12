@@ -3,7 +3,7 @@ apply plugin: 'com.android.application'
 android {
     compileSdkVersion 28
     defaultConfig {
-        applicationId "edu.osu.pcv.marslogger"
+        applicationId "se.lth.math.marslogger"
         minSdkVersion 23
         targetSdkVersion 28
         versionCode 1
