@@ -36,7 +36,8 @@ import java.io.FileWriter;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.Comparator;
+import java.util.Map;
+import java.util.TreeMap;
 
 public class Camera2Proxy {
 
@@ -66,6 +67,9 @@ public class Camera2Proxy {
     private int mDisplayRotate = 0;
     private int mDeviceOrientation = 0;
     private int mZoom = 1;
+
+    private boolean mOIS = false;
+    private boolean mDIS = false;
 
     private BufferedWriter mFrameMetadataWriter = null;
 
@@ -142,6 +146,7 @@ public class Camera2Proxy {
         try {
             mCameraIdStr = CameraUtils.getRearCameraId(mCameraManager);
             mCameraCharacteristics = mCameraManager.getCameraCharacteristics(mCameraIdStr);
+
             sensorArraySize = mCameraCharacteristics.get(
                     CameraCharacteristics.SENSOR_INFO_ACTIVE_ARRAY_SIZE);
 
@@ -153,10 +158,27 @@ public class Camera2Proxy {
             mFocalLengthHelper.setLensParams(mCameraCharacteristics);
             mFocalLengthHelper.setmImageSize(mVideoSize);
 
+
             mPreviewSize = CameraUtils.chooseOptimalSize(map.getOutputSizes(SurfaceTexture.class),
                     width, height, mVideoSize);
             Log.d(TAG, "Video size " + mVideoSize.toString() +
                     " preview size " + mPreviewSize.toString());
+
+            int hw_level = mCameraCharacteristics.get(CameraCharacteristics.INFO_SUPPORTED_HARDWARE_LEVEL);
+            Log.d(TAG, "HW support: " + hw_level);
+            int [] camCap = mCameraCharacteristics.get(CameraCharacteristics.REQUEST_AVAILABLE_CAPABILITIES);
+            Log.d(TAG, "Camera Capabilites: " + Arrays.toString(camCap));
+            int calibQuality = mCameraCharacteristics.get(CameraCharacteristics.LENS_INFO_FOCUS_DISTANCE_CALIBRATION);
+            Log.d(TAG, "Calibration Quality: " + calibQuality);
+            if (Build.VERSION.SDK_INT >= 28) {
+                int poseRef = mCameraCharacteristics.get(CameraCharacteristics.LENS_POSE_REFERENCE);
+                Log.d(TAG, "Camera Pose Ref: " + poseRef);
+                float[] poseT = mCameraCharacteristics.get(CameraCharacteristics.LENS_POSE_TRANSLATION);
+                Log.d(TAG, "Camera Pose T: " + Arrays.toString(poseT));
+                float[] poseR = mCameraCharacteristics.get(CameraCharacteristics.LENS_POSE_ROTATION);
+                Log.d(TAG, "Camera Pose R: " + Arrays.toString(poseR));
+            }
+
 
         } catch (CameraAccessException e) {
             e.printStackTrace();
@@ -295,6 +317,38 @@ public class Camera2Proxy {
                     CaptureRequest.LENS_FOCUS_DISTANCE, minFocusDistance);
             Log.d(TAG, "Focus distance set to its min value:" + minFocusDistance);
 
+            //Disable OIS
+            int[] ois_modes = mCameraCharacteristics.get(LENS_INFO_AVAILABLE_OPTICAL_STABILIZATION);
+            Log.d(TAG, "OIS modes:" + Arrays.toString(ois_modes));
+            for (int mode : ois_modes) {
+                if (mode == CameraMetadata.LENS_OPTICAL_STABILIZATION_MODE_OFF) {
+                    // OFF is a valid config, use it!
+                    mPreviewRequestBuilder.set(
+                            CaptureRequest.LENS_OPTICAL_STABILIZATION_MODE, CameraMetadata.LENS_OPTICAL_STABILIZATION_MODE_OFF);
+                    mOIS = false;
+                    break;
+                } else {
+                    // Only ON is a valid mode, nothing to be done.
+                    mOIS = true;
+                }
+            }
+
+            //Disable DIS
+            int[] dis_modes = mCameraCharacteristics.get(CameraCharacteristics.CONTROL_AVAILABLE_VIDEO_STABILIZATION_MODES);
+            Log.d(TAG, "DIS modes:" + Arrays.toString(dis_modes));
+            for (int mode : dis_modes) {
+                if (mode == CameraMetadata.CONTROL_VIDEO_STABILIZATION_MODE_OFF) {
+                    // OFF is a valid config, use it!
+                    mPreviewRequestBuilder.set(
+                            CaptureRequest.CONTROL_VIDEO_STABILIZATION_MODE, CameraMetadata.CONTROL_VIDEO_STABILIZATION_MODE_OFF);
+                    mDIS = false;
+                    break;
+                } else {
+                    // Only ON is a valid mode, nothing to be done.
+                    mDIS = true;
+                }
+            }
+
             if (mPreviewSurfaceTexture != null && mPreviewSurface == null) { // use texture view
                 mPreviewSurfaceTexture.setDefaultBufferSize(mPreviewSize.getWidth(),
                         mPreviewSize.getHeight());
@@ -347,6 +401,7 @@ public class Camera2Proxy {
 
                     Integer afMode = result.get(CaptureResult.CONTROL_AF_MODE);
 
+
                     Rect rect = result.get(CaptureResult.SCALER_CROP_REGION);
                     mFocalLengthHelper.setmFocalLength(fl);
                     mFocalLengthHelper.setmFocusDistance(fd);
@@ -374,7 +429,7 @@ public class Camera2Proxy {
                         }
                     }
                     ((CameraCaptureActivity) mActivity).updateCaptureResultPanel(
-                            sz_focal_length.getWidth(), exposureTimeNs, afMode);
+                            sz_focal_length.getWidth(), exposureTimeNs, afMode, mOIS, mDIS);
                 }
 
                 @Override
@@ -410,6 +465,51 @@ public class Camera2Proxy {
         } catch (CameraAccessException e) {
             e.printStackTrace();
         }
+    }
+
+    public Map<String,String> getCapabilitiesString() {
+        Log.v(TAG, "getCapabilities");
+        Map<String, String> capMap = new TreeMap<>();
+
+        int [] camCap = mCameraCharacteristics.get(CameraCharacteristics.REQUEST_AVAILABLE_CAPABILITIES);
+        capMap.put("REQUEST_AVAILABLE_CAPABILITIES", Arrays.toString(camCap));
+
+        int hwLevel = mCameraCharacteristics.get(CameraCharacteristics.INFO_SUPPORTED_HARDWARE_LEVEL);
+        capMap.put("INFO_SUPPORTED_HARDWARE_LEVEL", Integer.toString(hwLevel));
+
+        int[] oisModes = mCameraCharacteristics.get(LENS_INFO_AVAILABLE_OPTICAL_STABILIZATION);
+        capMap.put("LENS_INFO_AVAILABLE_OPTICAL_STABILIZATION", Arrays.toString(oisModes));
+
+        int[] stabilizationModes = mCameraCharacteristics.get(CameraCharacteristics.CONTROL_AVAILABLE_VIDEO_STABILIZATION_MODES);
+        capMap.put("CONTROL_AVAILABLE_VIDEO_STABILIZATION_MODES", Arrays.toString(stabilizationModes));
+
+        int calibQuality = mCameraCharacteristics.get(CameraCharacteristics.LENS_INFO_FOCUS_DISTANCE_CALIBRATION);
+        capMap.put("LENS_INFO_FOCUS_DISTANCE_CALIBRATION", Integer.toString(calibQuality));
+
+        if (Build.VERSION.SDK_INT >= 23) {
+            float[] intrinsicC = mCameraCharacteristics.get(CameraCharacteristics.LENS_INTRINSIC_CALIBRATION);
+            capMap.put("LENS_INTRINSIC_CALIBRATION", Arrays.toString(intrinsicC));
+
+            float[] RadialD = mCameraCharacteristics.get(CameraCharacteristics.LENS_RADIAL_DISTORTION);
+            capMap.put("LENS_RADIAL_DISTORTION", Arrays.toString(RadialD));
+        }
+
+        if (Build.VERSION.SDK_INT >= 28) {
+            int[] oisDataModes = mCameraCharacteristics.get(CameraCharacteristics.STATISTICS_INFO_AVAILABLE_OIS_DATA_MODES);
+            capMap.put("STATISTICS_INFO_AVAILABLE_OIS_DATA_MODES", Arrays.toString(oisDataModes));
+
+            int poseRef = mCameraCharacteristics.get(CameraCharacteristics.LENS_POSE_REFERENCE);
+            capMap.put("LENS_POSE_REFERENCE", Integer.toString(poseRef));
+
+            float [] poseT = mCameraCharacteristics.get(CameraCharacteristics.LENS_POSE_TRANSLATION);
+            capMap.put("LENS_POSE_TRANSLATION", Arrays.toString(poseT));
+
+            float [] poseR = mCameraCharacteristics.get(CameraCharacteristics.LENS_POSE_ROTATION);
+            capMap.put("LENS_POSE_ROTATION", Arrays.toString(poseR));
+        }
+
+
+        return capMap;
     }
 
     void changeManualFocusPoint(float eventX, float eventY, int viewWidth, int viewHeight) {

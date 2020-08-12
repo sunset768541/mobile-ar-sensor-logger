@@ -98,16 +98,8 @@
     <string name="tfcZoomLabel">Zoom: </string>
     <string name="tfcSizeLabel">Size: </string>
     <string name="tfcRotateLabel">Rotate: </string>
+    <string name="shareButtonText">Share Details</string>
 
-    <!-- for cameraFilter_spinner; match with CameraCaptureActivity constants -->
-    <string-array name="cameraFilterNames">
-        <item>Normal</item>
-        <item>Black &amp; white</item>
-        <item>Filter: blur</item>
-        <item>Filter: sharpen</item>
-        <item>Filter: edge detect</item>
-        <item>Filter: emboss</item>
-    </string-array>
 
     <!-- for scheduledSwapUpdate_spinner; match with UPDATE_PATTERNS -->
     <string-array name="scheduledSwapUpdateNames">

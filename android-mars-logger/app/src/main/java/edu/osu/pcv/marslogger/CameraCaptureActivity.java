@@ -17,8 +17,10 @@
 package edu.osu.pcv.marslogger;
 
 import android.app.Activity;
+import android.content.Intent;
 import android.graphics.SurfaceTexture;
 import android.hardware.camera2.CameraMetadata;
+import android.net.Uri;
 import android.opengl.EGL14;
 import android.opengl.GLES20;
 import android.opengl.GLSurfaceView;
@@ -36,10 +38,7 @@ import android.view.Surface;
 import android.view.View;
 import android.view.WindowManager;
 import android.widget.AdapterView;
-import android.widget.AdapterView.OnItemSelectedListener;
-import android.widget.ArrayAdapter;
 import android.widget.Button;
-import android.widget.Spinner;
 import android.widget.TextView;
 import android.widget.Toast;
 
@@ -48,6 +47,7 @@ import java.lang.ref.WeakReference;
 import java.text.SimpleDateFormat;
 import java.util.Date;
 import java.util.Locale;
+import java.util.Map;
 
 import javax.microedition.khronos.egl.EGLConfig;
 import javax.microedition.khronos.opengles.GL10;
@@ -130,17 +130,9 @@ import edu.osu.pcv.marslogger.gles.Texture2dProgram;
  * is managed as a static property of the Activity.
  */
 public class CameraCaptureActivity extends Activity
-        implements SurfaceTexture.OnFrameAvailableListener, OnItemSelectedListener {
+        implements SurfaceTexture.OnFrameAvailableListener {
     public static final String TAG = "MarsLogger";
     private static final boolean VERBOSE = false;
-
-    // Camera filters; must match up with cameraFilterNames in strings.xml
-    static final int FILTER_NONE = 0;
-    static final int FILTER_BLACK_WHITE = 1;
-    static final int FILTER_BLUR = 2;
-    static final int FILTER_SHARPEN = 3;
-    static final int FILTER_EDGE_DETECT = 4;
-    static final int FILTER_EMBOSS = 5;
 
     static final int mDesiredFrameWidth = 1280;
     static final int mDesiredFrameHeight = 720;
@@ -192,13 +184,6 @@ public class CameraCaptureActivity extends Activity
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_camera_capture);
 
-        Spinner spinner = (Spinner) findViewById(R.id.cameraFilter_spinner);
-        ArrayAdapter<CharSequence> adapter = ArrayAdapter.createFromResource(this,
-                R.array.cameraFilterNames, android.R.layout.simple_spinner_item);
-        adapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item);
-        // Apply the adapter to the spinner.
-        spinner.setAdapter(adapter);
-        spinner.setOnItemSelectedListener(this);
 
         // Define a handler that receives camera-control messages from other threads.  All calls
         // to Camera must be made on the same thread.  Note we create this before the renderer
@@ -317,26 +302,6 @@ public class CameraCaptureActivity extends Activity
         }
     }
 
-    // spinner selected
-    @Override
-    public void onItemSelected(AdapterView<?> parent, View view, int pos, long id) {
-        Spinner spinner = (Spinner) parent;
-        final int filterNum = spinner.getSelectedItemPosition();
-
-        Log.d(TAG, "onItemSelected: " + filterNum);
-        mGLView.queueEvent(new Runnable() {
-            @Override
-            public void run() {
-                // notify the renderer that we want to change the encoder's state
-                mRenderer.changeFilterMode(filterNum);
-            }
-        });
-    }
-
-    @Override
-    public void onNothingSelected(AdapterView<?> parent) {
-    }
-
     /**
      * onClick handler for "record" button.
      */
@@ -374,18 +339,47 @@ public class CameraCaptureActivity extends Activity
         updateControls();
     }
 
-//    /**
-//     * onClick handler for "rebind" checkbox.
-//     */
-//    public void clickRebindCheckbox(View unused) {
-//        CheckBox cb = (CheckBox) findViewById(R.id.rebindHack_checkbox);
-//        TextureRender.sWorkAroundContextProblem = cb.isChecked();
-//    }
+    /**
+     * onClick handler for "Share" button.
+     */
+    public void clickShare(@SuppressWarnings("unused") View unused) {
+        //Build string to send
+        StringBuilder sb = new StringBuilder();
+        sb.append("--------Device--------");
+        sb.append("\nManufacturer: " + Build.MANUFACTURER);
+        sb.append("\nModel: " + Build.MODEL);
+        sb.append("\n--------Software--------");
+        sb.append("\nVersion: " + Build.VERSION.SDK_INT);
+        sb.append("\nRelease: " + Build.VERSION.RELEASE);
+        sb.append("\n--------Camera Capabilities--------");
+        Map<String, String> capMap = mCamera2Proxy.getCapabilitiesString();
+        for (Map.Entry<String, String> entry : capMap.entrySet()) {
+            sb.append("\n" + entry.getKey() + ": " + entry.getValue());
+        }
+
+        String summary = sb.toString();
+        Log.d(TAG, summary);
+
+        Intent i = new Intent(Intent.ACTION_SENDTO);
+        //i.setType("message/rfc822");
+        i.setData(Uri.parse("mailto:"));
+        i.putExtra(Intent.EXTRA_EMAIL, new String[]{"david.gillsjo@math.lth.com"});
+        i.putExtra(Intent.EXTRA_SUBJECT, "Android Camera Data");
+        i.putExtra(Intent.EXTRA_TEXT   , sb.toString());
+        i.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+
+        try {
+            startActivity(Intent.createChooser(i, "Send mail..."));
+        } catch (android.content.ActivityNotFoundException ex) {
+            Toast.makeText(CameraCaptureActivity.this, "There are no email clients installed.", Toast.LENGTH_SHORT).show();
+        }
+    }
 
 
     public void updateCaptureResultPanel(
             final Float fl,
-            final Long exposureTimeNs, final Integer afMode) {
+            final Long exposureTimeNs, final Integer afMode,
+            final boolean oisActive, final boolean disActive) {
         final String sfl = String.format(Locale.getDefault(), "%.3f", fl);
         final String sexpotime =
                 exposureTimeNs == null ?
@@ -395,18 +389,21 @@ public class CameraCaptureActivity extends Activity
         String safMode;
         switch (afMode) {
             case CameraMetadata.CONTROL_AF_MODE_OFF:
-                safMode = "AF locked";
+                safMode = "AF: locked";
                 break;
             default:
-                safMode = "AF unlocked";
+                safMode = "AF: unlocked";
                 break;
         }
         final String saf = safMode;
+
+        final String oisMode = oisActive ? "OIS: ON" : "OIS: OFF";
+        final String disMode = disActive ? "DIS: ON" : "DIS: OFF";
         runOnUiThread(new Runnable() {
 
             @Override
             public void run() {
-                mCaptureResultText.setText(sfl + " " + sexpotime + " " + saf);
+                mCaptureResultText.setText(sfl + "|" + sexpotime + "|" + oisMode + "|" + disMode + "|" +saf);
             }
         });
     }
@@ -569,9 +566,6 @@ class CameraSurfaceRenderer implements GLSurfaceView.Renderer {
     private int mIncomingWidth;
     private int mIncomingHeight;
 
-    private int mCurrentFilter;
-    private int mNewFilter;
-
 
     /**
      * Constructs CameraSurfaceRenderer.
@@ -593,10 +587,6 @@ class CameraSurfaceRenderer implements GLSurfaceView.Renderer {
 
         mIncomingSizeUpdated = false;
         mIncomingWidth = mIncomingHeight = -1;
-
-        // We could preserve the old filter mode, but currently not bothering.
-        mCurrentFilter = -1;
-        mNewFilter = CameraCaptureActivity.FILTER_NONE;
     }
 
     public void resetOutputFiles(String outputFile, String metaFile) {
@@ -628,81 +618,6 @@ class CameraSurfaceRenderer implements GLSurfaceView.Renderer {
     public void changeRecordingState(boolean isRecording) {
         Log.d(TAG, "changeRecordingState: was " + mRecordingEnabled + " now " + isRecording);
         mRecordingEnabled = isRecording;
-    }
-
-    /**
-     * Changes the filter that we're applying to the camera preview.
-     */
-    public void changeFilterMode(int filter) {
-        mNewFilter = filter;
-    }
-
-    /**
-     * Updates the filter program.
-     */
-    public void updateFilter() {
-        Texture2dProgram.ProgramType programType;
-        float[] kernel = null;
-        float colorAdj = 0.0f;
-
-        Log.d(TAG, "Updating filter to " + mNewFilter);
-        switch (mNewFilter) {
-            case CameraCaptureActivity.FILTER_NONE:
-                programType = Texture2dProgram.ProgramType.TEXTURE_EXT;
-                break;
-            case CameraCaptureActivity.FILTER_BLACK_WHITE:
-                // (In a previous version the TEXTURE_EXT_BW variant was enabled by a flag called
-                // ROSE_COLORED_GLASSES, because the shader set the red channel to the B&W color
-                // and green/blue to zero.)
-                programType = Texture2dProgram.ProgramType.TEXTURE_EXT_BW;
-                break;
-            case CameraCaptureActivity.FILTER_BLUR:
-                programType = Texture2dProgram.ProgramType.TEXTURE_EXT_FILT;
-                kernel = new float[]{
-                        1f / 16f, 2f / 16f, 1f / 16f,
-                        2f / 16f, 4f / 16f, 2f / 16f,
-                        1f / 16f, 2f / 16f, 1f / 16f};
-                break;
-            case CameraCaptureActivity.FILTER_SHARPEN:
-                programType = Texture2dProgram.ProgramType.TEXTURE_EXT_FILT;
-                kernel = new float[]{
-                        0f, -1f, 0f,
-                        -1f, 5f, -1f,
-                        0f, -1f, 0f};
-                break;
-            case CameraCaptureActivity.FILTER_EDGE_DETECT:
-                programType = Texture2dProgram.ProgramType.TEXTURE_EXT_FILT;
-                kernel = new float[]{
-                        -1f, -1f, -1f,
-                        -1f, 8f, -1f,
-                        -1f, -1f, -1f};
-                break;
-            case CameraCaptureActivity.FILTER_EMBOSS:
-                programType = Texture2dProgram.ProgramType.TEXTURE_EXT_FILT;
-                kernel = new float[]{
-                        2f, 0f, 0f,
-                        0f, -1f, 0f,
-                        0f, 0f, -1f};
-                colorAdj = 0.5f;
-                break;
-            default:
-                throw new RuntimeException("Unknown filter mode " + mNewFilter);
-        }
-
-        // Do we need a whole new program?  (We want to avoid doing this if we don't have
-        // too -- compiling a program could be expensive.)
-        if (programType != mFullScreen.getProgram().getProgramType()) {
-            mFullScreen.changeProgram(new Texture2dProgram(programType));
-            // If we created a new program, we need to initialize the texture width/height.
-            mIncomingSizeUpdated = true;
-        }
-
-        // Update the filter kernel (if any).
-        if (kernel != null) {
-            mFullScreen.getProgram().setKernel(kernel, colorAdj);
-        }
-
-        mCurrentFilter = mNewFilter;
     }
 
     /**
@@ -831,10 +746,7 @@ class CameraSurfaceRenderer implements GLSurfaceView.Renderer {
             Log.i(TAG, "Drawing before incoming texture size set; skipping");
             return;
         }
-        // Update the filter, if necessary.
-        if (mCurrentFilter != mNewFilter) {
-            updateFilter();
-        }
+
         if (mIncomingSizeUpdated) {
             mFullScreen.getProgram().setTexSize(mIncomingWidth, mIncomingHeight);
             mIncomingSizeUpdated = false;

@@ -46,13 +46,6 @@
         android:onClick="clickToggleRecording"
         android:text="@string/toggleRecordingOn" />
 
-    <Spinner
-        android:id="@+id/cameraFilter_spinner"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:layout_marginEnd="@dimen/activity_horizontal_margin"
-        android:layout_alignParentEnd="true" />
-
     <!-- these overlap with the SurfaceView; by default, it's underneath the UI layer -->
 
     <TextView
@@ -89,5 +82,14 @@
         android:layout_toEndOf="@id/cameraOutputFileLabel"
         android:paddingStart="4dp"
         android:text="@string/cameraOutputFile_text" />
+
+    <Button
+        android:id="@+id/shareButton"
+        android:layout_width="78dp"
+        android:layout_height="wrap_content"
+        android:layout_alignParentEnd="true"
+        android:layout_marginEnd="16dp"
+        android:onClick="clickShare"
+        android:text="@string/shareButtonText" />
 
 </RelativeLayout>
