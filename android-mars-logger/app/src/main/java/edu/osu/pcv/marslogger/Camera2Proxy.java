@@ -106,7 +106,7 @@ public class Camera2Proxy {
             String header = "Timestamp[nanosec],fx[px],fy[px],Frame No.," +
                     "Exposure time[nanosec],Sensor frame duration[nanosec]," +
                     "Frame readout time[nanosec]," +
-                    "ISO,Focal length,Focus distance,AF mode";
+                    "ISO,Focal length,Focus distance";
 
             mFrameMetadataWriter.write(header + "\n");
             mRecordingMetadata = true;
@@ -318,7 +318,7 @@ public class Camera2Proxy {
             Log.d(TAG, "Focus distance set to its min value:" + minFocusDistance);
 
             //Disable OIS
-            int[] ois_modes = mCameraCharacteristics.get(LENS_INFO_AVAILABLE_OPTICAL_STABILIZATION);
+            int[] ois_modes = mCameraCharacteristics.get(CameraCharacteristics.LENS_INFO_AVAILABLE_OPTICAL_STABILIZATION);
             Log.d(TAG, "OIS modes:" + Arrays.toString(ois_modes));
             for (int mode : ois_modes) {
                 if (mode == CameraMetadata.LENS_OPTICAL_STABILIZATION_MODE_OFF) {
@@ -399,9 +399,6 @@ public class Camera2Proxy {
 
                     Float fd = result.get(CaptureResult.LENS_FOCUS_DISTANCE);
 
-                    Integer afMode = result.get(CaptureResult.CONTROL_AF_MODE);
-
-
                     Rect rect = result.get(CaptureResult.SCALER_CROP_REGION);
                     mFocalLengthHelper.setmFocalLength(fl);
                     mFocalLengthHelper.setmFocusDistance(fd);
@@ -419,7 +416,6 @@ public class Camera2Proxy {
                     sb.append(delimiter + iso);
                     sb.append(delimiter + fl);
                     sb.append(delimiter + fd);
-                    sb.append(delimiter + afMode);
                     String frame_info = sb.toString();
                     if (mRecordingMetadata) {
                         try {
@@ -429,7 +425,7 @@ public class Camera2Proxy {
                         }
                     }
                     ((CameraCaptureActivity) mActivity).updateCaptureResultPanel(
-                            sz_focal_length.getWidth(), exposureTimeNs, afMode, mOIS, mDIS);
+                            sz_focal_length.getWidth(), exposureTimeNs, mOIS, mDIS);
                 }
 
                 @Override
@@ -477,7 +473,7 @@ public class Camera2Proxy {
         int hwLevel = mCameraCharacteristics.get(CameraCharacteristics.INFO_SUPPORTED_HARDWARE_LEVEL);
         capMap.put("INFO_SUPPORTED_HARDWARE_LEVEL", Integer.toString(hwLevel));
 
-        int[] oisModes = mCameraCharacteristics.get(LENS_INFO_AVAILABLE_OPTICAL_STABILIZATION);
+        int[] oisModes = mCameraCharacteristics.get(CameraCharacteristics.LENS_INFO_AVAILABLE_OPTICAL_STABILIZATION);
         capMap.put("LENS_INFO_AVAILABLE_OPTICAL_STABILIZATION", Arrays.toString(oisModes));
 
         int[] stabilizationModes = mCameraCharacteristics.get(CameraCharacteristics.CONTROL_AVAILABLE_VIDEO_STABILIZATION_MODES);

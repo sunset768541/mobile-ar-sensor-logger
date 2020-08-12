@@ -19,7 +19,6 @@ package edu.osu.pcv.marslogger;
 import android.app.Activity;
 import android.content.Intent;
 import android.graphics.SurfaceTexture;
-import android.hardware.camera2.CameraMetadata;
 import android.net.Uri;
 import android.opengl.EGL14;
 import android.opengl.GLES20;
@@ -37,7 +36,6 @@ import android.view.Display;
 import android.view.Surface;
 import android.view.View;
 import android.view.WindowManager;
-import android.widget.AdapterView;
 import android.widget.Button;
 import android.widget.TextView;
 import android.widget.Toast;
@@ -378,24 +376,15 @@ public class CameraCaptureActivity extends Activity
 
     public void updateCaptureResultPanel(
             final Float fl,
-            final Long exposureTimeNs, final Integer afMode,
-            final boolean oisActive, final boolean disActive) {
-        final String sfl = String.format(Locale.getDefault(), "%.3f", fl);
+            final Long exposureTimeNs,
+            final boolean oisActive,
+            final boolean disActive) {
+        final String sfl = String.format(Locale.getDefault(), "FL: %.3f", fl);
         final String sexpotime =
                 exposureTimeNs == null ?
                         "null ms" :
-                        String.format(Locale.getDefault(), "%.2f ms",
+                        String.format(Locale.getDefault(), "Exp: %.2f ms",
                                 exposureTimeNs / 1000000.0);
-        String safMode;
-        switch (afMode) {
-            case CameraMetadata.CONTROL_AF_MODE_OFF:
-                safMode = "AF: locked";
-                break;
-            default:
-                safMode = "AF: unlocked";
-                break;
-        }
-        final String saf = safMode;
 
         final String oisMode = oisActive ? "OIS: ON" : "OIS: OFF";
         final String disMode = disActive ? "DIS: ON" : "DIS: OFF";
@@ -403,7 +392,7 @@ public class CameraCaptureActivity extends Activity
 
             @Override
             public void run() {
-                mCaptureResultText.setText(sfl + "|" + sexpotime + "|" + oisMode + "|" + disMode + "|" +saf);
+                mCaptureResultText.setText("|" + sfl + "|" + sexpotime + "|" + oisMode + "|" + disMode + "|");
             }
         });
     }
