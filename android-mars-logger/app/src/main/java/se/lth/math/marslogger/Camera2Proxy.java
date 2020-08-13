@@ -20,6 +20,7 @@ import android.hardware.camera2.params.StreamConfigurationMap;
 import android.media.ImageReader;
 import android.media.MediaRecorder;
 import android.os.Build;
+import android.os.Bundle;
 import android.os.Handler;
 import android.os.HandlerThread;
 import androidx.annotation.NonNull;
@@ -36,8 +37,6 @@ import java.io.FileWriter;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.Map;
-import java.util.TreeMap;
 
 public class Camera2Proxy {
 
@@ -164,25 +163,7 @@ public class Camera2Proxy {
             Log.d(TAG, "Video size " + mVideoSize.toString() +
                     " preview size " + mPreviewSize.toString());
 
-            Integer hw_level = mCameraCharacteristics.get(CameraCharacteristics.INFO_SUPPORTED_HARDWARE_LEVEL);
-            if (hw_level != null)
-                Log.d(TAG, "HW support: " + hw_level);
-            int [] camCap = mCameraCharacteristics.get(CameraCharacteristics.REQUEST_AVAILABLE_CAPABILITIES);
-            Log.d(TAG, "Camera Capabilites: " + Arrays.toString(camCap));
-            Integer calibQuality = mCameraCharacteristics.get(CameraCharacteristics.LENS_INFO_FOCUS_DISTANCE_CALIBRATION);
-            if (calibQuality != null)
-                Log.d(TAG, "Calib quality: " + calibQuality);
-
-            if (Build.VERSION.SDK_INT >= 28) {
-                Integer poseRef = mCameraCharacteristics.get(CameraCharacteristics.LENS_POSE_REFERENCE);
-                if (poseRef != null)
-                    Log.d(TAG, "Camera Pose Ref: " + poseRef);
-                float[] poseT = mCameraCharacteristics.get(CameraCharacteristics.LENS_POSE_TRANSLATION);
-                Log.d(TAG, "Camera Pose T: " + Arrays.toString(poseT));
-                float[] poseR = mCameraCharacteristics.get(CameraCharacteristics.LENS_POSE_ROTATION);
-                Log.d(TAG, "Camera Pose R: " + Arrays.toString(poseR));
-            }
-
+            logAnalyticsConfig();
 
         } catch (CameraAccessException e) {
             e.printStackTrace();
@@ -467,55 +448,52 @@ public class Camera2Proxy {
         }
     }
 
-    public Map<String,String> getCapabilitiesString() {
-        Log.v(TAG, "getCapabilities");
-        Map<String, String> capMap = new TreeMap<>();
+    private void logAnalyticsConfig() {
+        Log.d(TAG, "logAnalyticsConfig");
+        Bundle params = new Bundle();
+
+        params.putString("camera_id", mCameraIdStr);
+        params.putString("video_size", mVideoSize.toString());
+
+        int camFacing = mCameraCharacteristics.get(CameraCharacteristics.LENS_FACING);
+        params.putString("LENS_FACING", String.valueOf(camFacing));
 
         int [] camCap = mCameraCharacteristics.get(CameraCharacteristics.REQUEST_AVAILABLE_CAPABILITIES);
-        capMap.put("REQUEST_AVAILABLE_CAPABILITIES", Arrays.toString(camCap));
+        params.putString("REQUEST_AVAILABLE_CAPABILITIES", Arrays.toString(camCap));
 
         Integer hwLevel = mCameraCharacteristics.get(CameraCharacteristics.INFO_SUPPORTED_HARDWARE_LEVEL);
-        if (hwLevel != null)
-            capMap.put("INFO_SUPPORTED_HARDWARE_LEVEL", hwLevel.toString());
-        else
-            capMap.put("INFO_SUPPORTED_HARDWARE_LEVEL", "null");
+        params.putString("INFO_SUPPORTED_HARDWARE_LEVEL", String.valueOf(hwLevel));
 
         int[] oisModes = mCameraCharacteristics.get(CameraCharacteristics.LENS_INFO_AVAILABLE_OPTICAL_STABILIZATION);
-        capMap.put("LENS_INFO_AVAILABLE_OPTICAL_STABILIZATION", Arrays.toString(oisModes));
+        params.putString("AVAILABLE_OPTICAL_STABILIZATION", Arrays.toString(oisModes));
 
         int[] stabilizationModes = mCameraCharacteristics.get(CameraCharacteristics.CONTROL_AVAILABLE_VIDEO_STABILIZATION_MODES);
-        capMap.put("CONTROL_AVAILABLE_VIDEO_STABILIZATION_MODES", Arrays.toString(stabilizationModes));
+        params.putString("AVAILABLE_VIDEO_STABILIZATION_MODES", Arrays.toString(stabilizationModes));
 
         Integer calibQuality = mCameraCharacteristics.get(CameraCharacteristics.LENS_INFO_FOCUS_DISTANCE_CALIBRATION);
-        capMap.put("LENS_INFO_FOCUS_DISTANCE_CALIBRATION", Integer.toString(calibQuality));
+        params.putString("LENS_INFO_FOCUS_DISTANCE_CALIBRATION", String.valueOf(calibQuality));
 
-        if (Build.VERSION.SDK_INT >= 23) {
-            float[] intrinsicC = mCameraCharacteristics.get(CameraCharacteristics.LENS_INTRINSIC_CALIBRATION);
-            capMap.put("LENS_INTRINSIC_CALIBRATION", Arrays.toString(intrinsicC));
+        float[] intrinsicC = mCameraCharacteristics.get(CameraCharacteristics.LENS_INTRINSIC_CALIBRATION);
+        params.putString("LENS_INTRINSIC_CALIBRATION", Arrays.toString(intrinsicC));
 
-            float[] RadialD = mCameraCharacteristics.get(CameraCharacteristics.LENS_RADIAL_DISTORTION);
-            capMap.put("LENS_RADIAL_DISTORTION", Arrays.toString(RadialD));
-        }
+        float[] RadialD = mCameraCharacteristics.get(CameraCharacteristics.LENS_RADIAL_DISTORTION);
+        params.putString("LENS_RADIAL_DISTORTION", Arrays.toString(RadialD));
 
         if (Build.VERSION.SDK_INT >= 28) {
             int[] oisDataModes = mCameraCharacteristics.get(CameraCharacteristics.STATISTICS_INFO_AVAILABLE_OIS_DATA_MODES);
-            capMap.put("STATISTICS_INFO_AVAILABLE_OIS_DATA_MODES", Arrays.toString(oisDataModes));
+            params.putString("STATISTICS_INFO_AVAILABLE_OIS_DATA_MODES", Arrays.toString(oisDataModes));
 
             Integer poseRef = mCameraCharacteristics.get(CameraCharacteristics.LENS_POSE_REFERENCE);
-            if (poseRef != null)
-                capMap.put("LENS_POSE_REFERENCE", poseRef.toString());
-            else
-                capMap.put("LENS_POSE_REFERENCE", "null");
+            params.putString("LENS_POSE_REFERENCE", String.valueOf(poseRef));
 
             float [] poseT = mCameraCharacteristics.get(CameraCharacteristics.LENS_POSE_TRANSLATION);
-            capMap.put("LENS_POSE_TRANSLATION", Arrays.toString(poseT));
+            params.putString("LENS_POSE_TRANSLATION", Arrays.toString(poseT));
 
             float [] poseR = mCameraCharacteristics.get(CameraCharacteristics.LENS_POSE_ROTATION);
-            capMap.put("LENS_POSE_ROTATION", Arrays.toString(poseR));
+            params.putString("LENS_POSE_ROTATION", Arrays.toString(poseR));
         }
 
-
-        return capMap;
+        ((CameraCaptureActivity) mActivity).getmFirebaseAnalytics().logEvent("camera_config", params);
     }
 
     void changeManualFocusPoint(float eventX, float eventY, int viewWidth, int viewHeight) {

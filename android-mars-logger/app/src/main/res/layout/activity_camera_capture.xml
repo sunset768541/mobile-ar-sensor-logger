@@ -83,13 +83,4 @@
         android:paddingStart="4dp"
         android:text="@string/cameraOutputFile_text" />
 
-    <Button
-        android:id="@+id/shareButton"
-        android:layout_width="78dp"
-        android:layout_height="wrap_content"
-        android:layout_alignParentEnd="true"
-        android:layout_marginEnd="16dp"
-        android:onClick="clickShare"
-        android:text="@string/shareButtonText" />
-
 </RelativeLayout>

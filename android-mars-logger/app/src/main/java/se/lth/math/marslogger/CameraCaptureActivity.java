@@ -40,6 +40,8 @@ import android.widget.Button;
 import android.widget.TextView;
 import android.widget.Toast;
 
+import com.google.firebase.analytics.FirebaseAnalytics;
+
 import java.io.File;
 import java.lang.ref.WeakReference;
 import java.text.SimpleDateFormat;
@@ -146,12 +148,17 @@ public class CameraCaptureActivity extends Activity
 
     private int mCameraPreviewWidth, mCameraPreviewHeight;
 
+    private FirebaseAnalytics mFirebaseAnalytics;
+
     // this is static so it survives activity restarts
     private static TextureMovieEncoder sVideoEncoder = new TextureMovieEncoder();
     private static IMUManager mImuManager;
 
     public Camera2Proxy getmCamera2Proxy() {
         return mCamera2Proxy;
+    }
+    public FirebaseAnalytics getmFirebaseAnalytics() {
+        return mFirebaseAnalytics;
     }
 
     private String renewOutputDir() {
@@ -207,6 +214,10 @@ public class CameraCaptureActivity extends Activity
 
         mImuManager = new IMUManager(this);
         mCaptureResultText = (TextView) findViewById(R.id.captureResult_text);
+
+        // Obtain the FirebaseAnalytics instance.
+        mFirebaseAnalytics = FirebaseAnalytics.getInstance(this);
+
         Log.d(TAG, "onCreate complete: " + this);
     }
 
@@ -335,42 +346,6 @@ public class CameraCaptureActivity extends Activity
             }
         });
         updateControls();
-    }
-
-    /**
-     * onClick handler for "Share" button.
-     */
-    public void clickShare(@SuppressWarnings("unused") View unused) {
-        //Build string to send
-        StringBuilder sb = new StringBuilder();
-        sb.append("--------Device--------");
-        sb.append("\nManufacturer: " + Build.MANUFACTURER);
-        sb.append("\nModel: " + Build.MODEL);
-        sb.append("\n--------Software--------");
-        sb.append("\nVersion: " + Build.VERSION.SDK_INT);
-        sb.append("\nRelease: " + Build.VERSION.RELEASE);
-        sb.append("\n--------Camera Capabilities--------");
-        Map<String, String> capMap = mCamera2Proxy.getCapabilitiesString();
-        for (Map.Entry<String, String> entry : capMap.entrySet()) {
-            sb.append("\n" + entry.getKey() + ": " + entry.getValue());
-        }
-
-        String summary = sb.toString();
-        Log.d(TAG, summary);
-
-        Intent i = new Intent(Intent.ACTION_SENDTO);
-        //i.setType("message/rfc822");
-        i.setData(Uri.parse("mailto:"));
-        i.putExtra(Intent.EXTRA_EMAIL, new String[]{"david.gillsjo@math.lth.se"});
-        i.putExtra(Intent.EXTRA_SUBJECT, "Android Camera Data");
-        i.putExtra(Intent.EXTRA_TEXT   , sb.toString());
-        i.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
-
-        try {
-            startActivity(Intent.createChooser(i, "Send mail..."));
-        } catch (android.content.ActivityNotFoundException ex) {
-            Toast.makeText(CameraCaptureActivity.this, "There are no email clients installed.", Toast.LENGTH_SHORT).show();
-        }
     }
 
 

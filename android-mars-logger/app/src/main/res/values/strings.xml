@@ -98,7 +98,6 @@
     <string name="tfcZoomLabel">Zoom: </string>
     <string name="tfcSizeLabel">Size: </string>
     <string name="tfcRotateLabel">Rotate: </string>
-    <string name="shareButtonText">Share Details</string>
 
 
     <!-- for scheduledSwapUpdate_spinner; match with UPDATE_PATTERNS -->
