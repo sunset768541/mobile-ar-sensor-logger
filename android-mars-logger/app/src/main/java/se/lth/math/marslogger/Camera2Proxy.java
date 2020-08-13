@@ -4,6 +4,7 @@ import android.annotation.SuppressLint;
 import android.annotation.TargetApi;
 import android.app.Activity;
 import android.content.Context;
+import android.content.SharedPreferences;
 import android.graphics.Rect;
 import android.graphics.SurfaceTexture;
 import android.hardware.camera2.CameraAccessException;
@@ -24,6 +25,8 @@ import android.os.Bundle;
 import android.os.Handler;
 import android.os.HandlerThread;
 import androidx.annotation.NonNull;
+
+import android.preference.PreferenceManager;
 import android.util.Log;
 import android.util.Range;
 import android.util.Size;
@@ -69,6 +72,7 @@ public class Camera2Proxy {
 
     private boolean mOIS = false;
     private boolean mDIS = false;
+    private boolean mlogAnalyticsConfigSent = false;
 
     private BufferedWriter mFrameMetadataWriter = null;
 
@@ -449,6 +453,14 @@ public class Camera2Proxy {
     }
 
     private void logAnalyticsConfig() {
+        Context context = mActivity;
+        SharedPreferences sharedPreferences = PreferenceManager.getDefaultSharedPreferences(context);
+        int versionCode = BuildConfig.VERSION_CODE;
+        String CAMERA_CONFIG_VERSION_SENT = "CAMERA_CONFIG_VERSION_SENT";
+        if (sharedPreferences.getInt(CAMERA_CONFIG_VERSION_SENT, 0) == versionCode) {
+            Log.d(TAG, "logAnalyticsConfig already sent for this version: " + versionCode);
+            return;
+        }
         Log.d(TAG, "logAnalyticsConfig");
         Bundle params = new Bundle();
         params.putString("camera_id", mCameraIdStr);
@@ -497,6 +509,8 @@ public class Camera2Proxy {
         }
 
         ((CameraCaptureActivity) mActivity).getmFirebaseAnalytics().logEvent("camera_config", params);
+        sharedPreferences.edit().putInt(CAMERA_CONFIG_VERSION_SENT, versionCode).apply();
+        Log.d(TAG, "Setting logAnalyticsConfig version to: " + versionCode);
     }
 
     void changeManualFocusPoint(float eventX, float eventY, int viewWidth, int viewHeight) {
