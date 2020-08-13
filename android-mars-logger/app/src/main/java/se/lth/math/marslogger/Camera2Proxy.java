@@ -451,9 +451,12 @@ public class Camera2Proxy {
     private void logAnalyticsConfig() {
         Log.d(TAG, "logAnalyticsConfig");
         Bundle params = new Bundle();
-
         params.putString("camera_id", mCameraIdStr);
         params.putString("video_size", mVideoSize.toString());
+        params.putString("manufacturer", Build.MANUFACTURER);
+        params.putString("model", Build.MODEL);
+        params.putString("sw_version", String.valueOf(Build.VERSION.SDK_INT));
+        params.putString("sw_release", Build.VERSION.RELEASE);
 
         int camFacing = mCameraCharacteristics.get(CameraCharacteristics.LENS_FACING);
         params.putString("LENS_FACING", String.valueOf(camFacing));
