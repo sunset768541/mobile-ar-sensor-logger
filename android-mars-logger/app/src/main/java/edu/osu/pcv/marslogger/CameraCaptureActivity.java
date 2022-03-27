@@ -32,6 +32,7 @@ import android.support.annotation.RequiresApi;
 import android.util.Log;
 import android.util.Size;
 import android.view.Display;
+import android.view.MotionEvent;
 import android.view.Surface;
 import android.view.View;
 import android.view.WindowManager;
@@ -203,24 +204,28 @@ public class CameraCaptureActivity extends Activity
         // Define a handler that receives camera-control messages from other threads.  All calls
         // to Camera must be made on the same thread.  Note we create this before the renderer
         // thread, so we know the fully-constructed object will be visible.
-        mCameraHandler = new CameraHandler(this);
+//        mCameraHandler = new CameraHandler(this);
 
         mRecordingEnabled = sVideoEncoder.isRecording();
 
         // Configure the GLSurfaceView.  This will start the Renderer thread, with an
         // appropriate EGL context.
-        mGLView = (SampleGLView) findViewById(R.id.cameraPreview_surfaceView);
-        mGLView.setEGLContextClientVersion(2);     // select GLES 2.0
-        mRenderer = new CameraSurfaceRenderer(
-                mCameraHandler, sVideoEncoder);
-        mGLView.setRenderer(mRenderer);
-        mGLView.setRenderMode(GLSurfaceView.RENDERMODE_WHEN_DIRTY);
-        mGLView.setTouchListener((event, width, height) -> {
-            if (mCameraHandler != null) {
-                mCameraHandler.changeManualFocusPoint(
-                        event.getX(), event.getY(), width, height);
-            }
-        });
+//        mGLView = (SampleGLView) findViewById(R.id.cameraPreview_surfaceView);
+//        mGLView.setEGLContextClientVersion(2);     // select GLES 2.0
+//        mRenderer = new CameraSurfaceRenderer(
+//                mCameraHandler, sVideoEncoder);
+//        mGLView.setRenderer(mRenderer);
+//        mGLView.setRenderMode(GLSurfaceView.RENDERMODE_WHEN_DIRTY);
+//        mGLView.setTouchListener(new SampleGLView.TouchListener() {
+//            @Override
+//            public void onTouch(MotionEvent event, int width, int height) {
+//                if (mCameraHandler != null) {
+//                    mCameraHandler.changeManualFocusPoint(
+//                            event.getX(), event.getY(), width, height);
+//                }
+//            }
+//        });
+//
 
         mImuManager = new IMUManager(this);
         mCaptureResultText = (TextView) findViewById(R.id.captureResult_text);
@@ -260,14 +265,14 @@ public class CameraCaptureActivity extends Activity
         } else {
             PermissionHelper.requestCameraPermission(this, false);
         }
-
-        mGLView.onResume();
-        mGLView.queueEvent(new Runnable() {
-            @Override
-            public void run() {
-                mRenderer.setCameraPreviewSize(mCameraPreviewWidth, mCameraPreviewHeight);
-            }
-        });
+//
+//        mGLView.onResume();
+//        mGLView.queueEvent(new Runnable() {
+//            @Override
+//            public void run() {
+//                mRenderer.setCameraPreviewSize(mCameraPreviewWidth, mCameraPreviewHeight);
+//            }
+//        });
         mImuManager.register();
         Log.d(TAG, "onResume complete: " + this);
     }
@@ -277,20 +282,20 @@ public class CameraCaptureActivity extends Activity
         Log.d(TAG, "onPause -- releasing camera");
         super.onPause();
         // no more frame metadata will be saved during pause
-        if (mCamera2Proxy != null) {
-            mCamera2Proxy.releaseCamera();
-            mCamera2Proxy = null;
-        }
+//        if (mCamera2Proxy != null) {
+//            mCamera2Proxy.releaseCamera();
+//            mCamera2Proxy = null;
+//        }
 
-        mGLView.queueEvent(new Runnable() {
-            @Override
-            public void run() {
-                // Tell the renderer that it's about to be paused so it can clean up.
-                mRenderer.notifyPausing();
-            }
-        });
-        mGLView.onPause();
-        mImuManager.unregister();
+//        mGLView.queueEvent(new Runnable() {
+//            @Override
+//            public void run() {
+//                // Tell the renderer that it's about to be paused so it can clean up.
+//                mRenderer.notifyPausing();
+//            }
+//        });
+//        mGLView.onPause();
+//        mImuManager.unregister();
         Log.d(TAG, "onPause complete");
     }
 
@@ -298,23 +303,23 @@ public class CameraCaptureActivity extends Activity
     protected void onDestroy() {
         Log.d(TAG, "onDestroy");
         super.onDestroy();
-        mCameraHandler.invalidateHandler();     // paranoia
+//        mCameraHandler.invalidateHandler();     // paranoia
     }
 
     @Override
     public void onRequestPermissionsResult(int requestCode, @NonNull String[] permissions, @NonNull int[] grantResults) {
         super.onRequestPermissionsResult(requestCode, permissions, grantResults);
-        if (!PermissionHelper.hasCameraPermission(this)) {
-            Toast.makeText(this,
-                    "Camera permission is needed to run this application", Toast.LENGTH_LONG).show();
-            PermissionHelper.launchPermissionSettings(this);
-            finish();
-        } else {
-            mCamera2Proxy = new Camera2Proxy(this);
-            Size previewSize =
-                    mCamera2Proxy.configureCamera(mDesiredFrameWidth, mDesiredFrameHeight);
-            setLayoutAspectRatio(previewSize);
-        }
+//        if (!PermissionHelper.hasCameraPermission(this)) {
+//            Toast.makeText(this,
+//                    "Camera permission is needed to run this application", Toast.LENGTH_LONG).show();
+//            PermissionHelper.launchPermissionSettings(this);
+//            finish();
+//        } else {
+//            mCamera2Proxy = new Camera2Proxy(this);
+//            Size previewSize =
+//                    mCamera2Proxy.configureCamera(mDesiredFrameWidth, mDesiredFrameHeight);
+//            setLayoutAspectRatio(previewSize);
+//        }
     }
 
     // spinner selected
@@ -322,15 +327,15 @@ public class CameraCaptureActivity extends Activity
     public void onItemSelected(AdapterView<?> parent, View view, int pos, long id) {
         Spinner spinner = (Spinner) parent;
         final int filterNum = spinner.getSelectedItemPosition();
-
-        Log.d(TAG, "onItemSelected: " + filterNum);
-        mGLView.queueEvent(new Runnable() {
-            @Override
-            public void run() {
-                // notify the renderer that we want to change the encoder's state
-                mRenderer.changeFilterMode(filterNum);
-            }
-        });
+//
+//        Log.d(TAG, "onItemSelected: " + filterNum);
+//        mGLView.queueEvent(new Runnable() {
+//            @Override
+//            public void run() {
+//                // notify the renderer that we want to change the encoder's state
+//                mRenderer.changeFilterMode(filterNum);
+//            }
+//        });
     }
 
     @Override
@@ -346,31 +351,31 @@ public class CameraCaptureActivity extends Activity
             String outputDir = renewOutputDir();
             String outputFile = outputDir + File.separator + "movie.mp4";
             String metaFile = outputDir + File.separator + "frame_timestamps.txt";
-            TextView fileText = (TextView) findViewById(R.id.cameraOutputFile_text);
-            fileText.setText(outputFile);
-            mRenderer.resetOutputFiles(outputFile, metaFile); // this will not cause sync issues
+//            TextView fileText = (TextView) findViewById(R.id.cameraOutputFile_text);
+//            fileText.setText(outputFile);
+//            mRenderer.resetOutputFiles(outputFile, metaFile); // this will not cause sync issues
             String inertialFile = outputDir + File.separator + "gyro_accel.csv";
             mImuManager.startRecording(inertialFile);
-            if (mCamera2Proxy != null) {
-                mCamera2Proxy.startRecordingCaptureResult(
-                        outputDir + File.separator + "movie_metadata.csv");
-            } else {
-                throw new RuntimeException("mCamera2Proxy should not be null upon toggling record button");
-            }
+//            if (mCamera2Proxy != null) {
+//                mCamera2Proxy.startRecordingCaptureResult(
+//                        outputDir + File.separator + "movie_metadata.csv");
+//            } else {
+//                throw new RuntimeException("mCamera2Proxy should not be null upon toggling record button");
+//            }
 
         } else {
-            if (mCamera2Proxy != null) {
-                mCamera2Proxy.stopRecordingCaptureResult();
-            }
+//            if (mCamera2Proxy != null) {
+//                mCamera2Proxy.stopRecordingCaptureResult();
+//            }
             mImuManager.stopRecording();
         }
-        mGLView.queueEvent(new Runnable() {
-            @Override
-            public void run() {
-                // notify the renderer that we want to change the encoder's state
-                mRenderer.changeRecordingState(mRecordingEnabled);
-            }
-        });
+//        mGLView.queueEvent(new Runnable() {
+//            @Override
+//            public void run() {
+//                // notify the renderer that we want to change the encoder's state
+//                mRenderer.changeRecordingState(mRecordingEnabled);
+//            }
+//        });
         updateControls();
     }
 

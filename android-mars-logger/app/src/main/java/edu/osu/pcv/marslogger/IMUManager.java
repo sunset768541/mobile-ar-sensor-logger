@@ -61,8 +61,8 @@ public class IMUManager implements SensorEventListener {
         try {
             mDataWriter = new BufferedWriter(
                     new FileWriter(captureResultFile, false));
-            String header = "Timestamp[nanosec], gx[rad/s], gy[rad/s], gz[rad/s]," +
-                    " ax[m/s^2], ay[m/s^2], az[m/s^2]\n";
+            String header = "Timestamp[nanosec], ax[rad/s], ay[rad/s], az[rad/s]," +
+                    " gx[m/s^2], gy[m/s^2], gz[m/s^2]\n";
 
             mDataWriter.write(header);
             mRecordingInertialData = true;
@@ -185,6 +185,7 @@ public class IMUManager implements SensorEventListener {
                     sb.append(delimiter + syncedData.values[index]);
                 }
                 try {
+                    Log.d("IMU","写入数据");
                     mDataWriter.write(sb.toString() + "\n");
                 } catch (IOException ioe) {
                     System.err.println("IOException: " + ioe.getMessage());
